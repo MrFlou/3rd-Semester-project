@@ -38,7 +38,7 @@ def rgb2hsv(r, g, b):
     return h, s, v
 
 
-def colorThreshold(color):
+def colorThreshold():
     height, width, channel = frame.shape
     hsv = np.zeros((height, width, channel), dtype=np.uint8)
 
@@ -55,23 +55,25 @@ def colorThreshold(color):
     #         hsv.itemset((y, x, 1), s)
     #         hsv.itemset((y, x, 2), v)
 
-    if color == 0:
-        # define range of blue color in HSV
-        lower_blue = np.array([110, 50, 50])
-        upper_blue = np.array([130, 255, 255])
+    # define range of red color in HSV
+    lower_red = np.array([160, 0, 0 - sense])
+    upper_red = np.array([10, 255, 20 + sense])
 
-        mask = cv.inRange(hsv, lower_blue, upper_blue)
-        res = cv.bitwise_and(frame, frame, mask=mask)
+    maskB = cv.inRange(hsv, lower_red, upper_red)
 
-    elif color == 1:
-        # define range of green color in HSV
-        lower_green = np.array([60 - sense, 40, 40])
-        upper_green = np.array([100 + sense, 255, 255])
+    # define range of black color in HSV
+    lower_black = np.array([0, 0, 0 - sense])
+    upper_black = np.array([180, 255, 20 + sense])
 
-        mask = cv.inRange(hsv, lower_green, upper_green)
-        res = cv.bitwise_and(frame, frame, mask=mask)
+    maskB = cv.inRange(hsv, lower_black, upper_black)
 
-    return mask, res
+    # define range of green color in HSV
+    lower_green = np.array([60 - sense, 40, 40])
+    upper_green = np.array([100 + sense, 255, 255])
+
+    maskG = cv.inRange(hsv, lower_green, upper_green)
+
+    return maskR, maskG, maskB
 
 
 def blockout(mask):
@@ -118,11 +120,13 @@ while(1):
     # Take each frame
     _, frame = cap.read()
 
-    mask, res = colorThreshold(1)
-    blockMask, blockMaskXL = blockout(mask)
+    maskR, maskG, maskB = colorThreshold(1)
+    blockMask, blockMaskXL = blockout(maskG)
 
     cv.imshow('frame', frame)
-    cv.imshow('mask', mask)
+    cv.imshow('maskR', maskR)
+    cv.imshow('maskG', maskG)
+    cv.imshow('maskB', maskB)
     cv.imshow('blockMask', blockMask)
     cv.imshow('blockMaskXL', blockMaskXL)
 
