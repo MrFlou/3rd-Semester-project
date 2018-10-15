@@ -56,14 +56,18 @@ def colorThreshold():
     #         hsv.itemset((y, x, 2), v)
 
     # define range of red color in HSV
-    lower_red = np.array([160, 0, 0 - sense])
-    upper_red = np.array([10, 255, 20 + sense])
+    lower_red1 = np.array([0, 40, 40])
+    upper_red1 = np.array([5, 255, 255])
+    lower_red2 = np.array([150, 40, 40])
+    upper_red2 = np.array([180, 255, 255])
 
-    maskB = cv.inRange(hsv, lower_red, upper_red)
+    maskR1 = cv.inRange(hsv, lower_red1, upper_red1)
+    maskR2 = cv.inRange(hsv, lower_red2, upper_red2)
+    maskR = maskR1 + maskR2
 
     # define range of black color in HSV
-    lower_black = np.array([0, 0, 0 - sense])
-    upper_black = np.array([180, 255, 20 + sense])
+    lower_black = np.array([0, 0, 0])
+    upper_black = np.array([180, 255, 20])
 
     maskB = cv.inRange(hsv, lower_black, upper_black)
 
@@ -120,15 +124,15 @@ while(1):
     # Take each frame
     _, frame = cap.read()
 
-    maskR, maskG, maskB = colorThreshold(1)
-    blockMask, blockMaskXL = blockout(maskG)
+    maskR, maskG, maskB = colorThreshold()
+    #blockMask, blockMaskXL = blockout(maskG)
 
     cv.imshow('frame', frame)
     cv.imshow('maskR', maskR)
     cv.imshow('maskG', maskG)
     cv.imshow('maskB', maskB)
-    cv.imshow('blockMask', blockMask)
-    cv.imshow('blockMaskXL', blockMaskXL)
+    #cv.imshow('blockMask', blockMask)
+    #cv.imshow('blockMaskXL', blockMaskXL)
 
     k = cv.waitKey(5) & 0xFF
     if k == 27:
@@ -140,7 +144,6 @@ while(1):
         sense = sense - 1
         print(sense)
     if k == 112 or k == 80:
-        cv.imwrite('Grid.png', blockMask)
         print('Print image')
 
 
