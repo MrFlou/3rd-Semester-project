@@ -67,13 +67,13 @@ def colorThreshold():
 
     # define range of black color in HSV
     lower_black = np.array([0, 0, 0])
-    upper_black = np.array([180, 255, 20])
+    upper_black = np.array([180, 255, 35])
 
     maskB = cv.inRange(hsv, lower_black, upper_black)
 
     # define range of green color in HSV
-    lower_green = np.array([60 - sense, 40, 40])
-    upper_green = np.array([100 + sense, 255, 255])
+    lower_green = np.array([70, 40, 40])
+    upper_green = np.array([90, 255, 255])
 
     maskG = cv.inRange(hsv, lower_green, upper_green)
 
