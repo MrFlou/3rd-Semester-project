@@ -6,6 +6,8 @@ __pycache__/
 # C extensions
 *.so
 
+P3- tilemap/
+
 # Distribution / packaging
 .Python
 build/
