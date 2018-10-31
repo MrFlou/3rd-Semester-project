@@ -72,8 +72,8 @@ def colorThreshold():
     maskB = cv.inRange(hsv, lower_black, upper_black)
 
     # define range of green color in HSV
-    lower_green = np.array([10, 20, 20])
-    upper_green = np.array([100, 255, 255])
+    lower_green = np.array([40, 40, 40])
+    upper_green = np.array([90, 255, 255])
 
     maskG = cv.inRange(hsv, lower_green, upper_green)
 
@@ -83,7 +83,7 @@ def colorThreshold():
 def blockout(mask):
     MaskX, MaskY = mask.shape
     blackMask = cv.resize(mask, (int(MaskY/20), int(MaskX/20)))
-    #blackMaskXL = cv.resize(blackMask, (MaskY, MaskX), interpolation=cv.INTER_NEAREST)
+    # blackMaskXL = cv.resize(blackMask, (MaskY, MaskX), interpolation=cv.INTER_NEAREST)
 
     for x in range(len(blackMask)):
         for y in range(len(blackMask[x])):
@@ -99,40 +99,27 @@ def blockout(mask):
     #         else:
     #             blackMaskXL.itemset((x, y), 0)
 
-    return blackMask #blackMaskXL
+    return blackMask  # , blackMaskXL
 
-    # height, width, channels = mask.shape
-    # tileSize = 30
-    # tileX = width/tileSize
-    # tileY = height/tileSize
-    # tileMap = np.zeros((tileY, tileX, channels), dtype=np.uint8)
-    #
-    # nr1 = 0
-    # for xTile in range(0, tileX):
-    #     nr2 = 0
-    #     for yTile in range(0, tileY):
-    #         sum = np.average(mask[nr1:nr1+tileSize, nr2:nr2+tileSize])
-    #
-    #         if sum >= 127:
-    #             for x in range(0)
-    #             tilemap.itemset((y, x, 0), 255)
-    #         else:
-    #             tilemap.itemset((y, x, 0), 0)
-
-#Main Process
+# Main Process
 while(1):
+
     # Take each frame
     _, frame = cap.read()
 
     maskR, maskG, maskB = colorThreshold()
-    #blockMask, blockMaskXL = blockout(maskB)
+    # blockMask, blockMaskBXL = blockout(maskB)
+    # blockMask, blockMaskRXL = blockout(maskR)
+    # blockMask, blockMaskGXL = blockout(maskG)
 
     cv.imshow('frame', frame)
-    #cv.imshow('maskR', maskR)
-    cv.imshow('maskG', maskG)
-    cv.imshow('maskB', maskB)
-    #cv.imshow('blockMask', blockMask)
-    #cv.imshow('blockMaskXL', blockMaskXL)
+    # cv.imshow('maskR', maskR)
+    # cv.imshow('maskG', maskG)
+    # cv.imshow('maskB', maskB)
+    # cv.imshow('blockMask', blockMask)
+    # cv.imshow('blockMaskBXL', blockMaskBXL)
+    # cv.imshow('blockMaskGXL', blockMaskGXL)
+    # cv.imshow('blockMaskRXL', blockMaskRXL)
 
     k = cv.waitKey(5) & 0xFF
     if k == 27:
@@ -150,6 +137,9 @@ while(1):
         maskR = blockout(maskR)
         maskRGB = cv.merge((maskB, maskG, maskR))
         cv.imwrite('tileMask.png', maskRGB)
+        cv.imwrite('tileMaskR.png', maskR)
+        cv.imwrite('tileMaskG.png', maskG)
+        cv.imwrite('tileMaskB.png', maskB)
 
 
 cv.destroyAllWindows()
