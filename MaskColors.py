@@ -72,8 +72,8 @@ def colorThreshold():
     maskB = cv.inRange(hsv, lower_black, upper_black)
 
     # define range of green color in HSV
-    lower_green = np.array([70, 40, 40])
-    upper_green = np.array([90, 255, 255])
+    lower_green = np.array([10, 20, 20])
+    upper_green = np.array([100, 255, 255])
 
     maskG = cv.inRange(hsv, lower_green, upper_green)
 
@@ -119,16 +119,16 @@ def blockout(mask):
     #         else:
     #             tilemap.itemset((y, x, 0), 0)
 
-
+#Main Process
 while(1):
     # Take each frame
     _, frame = cap.read()
 
     maskR, maskG, maskB = colorThreshold()
-    #blockMask, blockMaskXL = blockout(maskG)
+    #blockMask, blockMaskXL = blockout(maskB)
 
     cv.imshow('frame', frame)
-    cv.imshow('maskR', maskR)
+    #cv.imshow('maskR', maskR)
     cv.imshow('maskG', maskG)
     cv.imshow('maskB', maskB)
     #cv.imshow('blockMask', blockMask)
@@ -145,6 +145,8 @@ while(1):
         print(sense)
     if k == 112 or k == 80:
         print('Print image')
+        maskRGB = cv.merge((maskB, maskG, maskR))
+        cv.imwrite('tileMask.png', maskRGB)
 
 
 cv.destroyAllWindows()
