@@ -83,7 +83,7 @@ def colorThreshold():
 def blockout(mask):
     MaskX, MaskY = mask.shape
     blackMask = cv.resize(mask, (int(MaskY/20), int(MaskX/20)))
-    blackMaskXL = cv.resize(blackMask, (MaskY, MaskX), interpolation=cv.INTER_NEAREST)
+    #blackMaskXL = cv.resize(blackMask, (MaskY, MaskX), interpolation=cv.INTER_NEAREST)
 
     for x in range(len(blackMask)):
         for y in range(len(blackMask[x])):
@@ -92,14 +92,14 @@ def blockout(mask):
             else:
                 blackMask.itemset((x, y), 0)
 
-    for x in range(len(blackMaskXL)):
-        for y in range(len(blackMaskXL[x])):
-            if blackMaskXL[x, y] > 1:
-                blackMaskXL.itemset((x, y), 255)
-            else:
-                blackMaskXL.itemset((x, y), 0)
+    # for x in range(len(blackMaskXL)):
+    #     for y in range(len(blackMaskXL[x])):
+    #         if blackMaskXL[x, y] > 1:
+    #             blackMaskXL.itemset((x, y), 255)
+    #         else:
+    #             blackMaskXL.itemset((x, y), 0)
 
-    return blackMask, blackMaskXL
+    return blackMask #blackMaskXL
 
     # height, width, channels = mask.shape
     # tileSize = 30
@@ -145,6 +145,9 @@ while(1):
         print(sense)
     if k == 112 or k == 80:
         print('Print image')
+        maskB = blockout(maskB)
+        maskG = blockout(maskG)
+        maskR = blockout(maskR)
         maskRGB = cv.merge((maskB, maskG, maskR))
         cv.imwrite('tileMask.png', maskRGB)
 
