@@ -2,7 +2,7 @@ import cv2 as cv
 import numpy as np
 
 sense = 0
-cap = cv.VideoCapture(1)
+cap = cv.VideoCapture(0)
 ret = cap.set(3, 640)
 ret = cap.set(4, 480)
 
@@ -102,16 +102,27 @@ def blockout(mask):
     return blackMask  # , blackMaskXL
 
 def maskSizeReduction(arr):
-    h, w, c = arr.shape
+    h, w = arr.shape
     return (arr.reshape(h//20, 20, -1, 20)
                .swapaxes(1,2)
                .reshape(-1, 20, 20))
 
-def maskReduction(mask):
-    mask = maskSizeReduction(mask)
+def maskReduction(nmask):
+    mask = maskSizeReduction(nmask)
+    maskOut = np.zeros((32, 24), dtype=np.uint8)
+    h1, w1 = maskOut.shape
+    h, w, c = mask.shape
+    mask = np.arange(h*w*c).reshape(h,w,c)
 
-
-
+    print(mask.shape)
+    h2 = 0
+    for x in range(h1):
+        for y in range(w1):
+            maskOut.itemset((x,y),mask[h2].mean())
+            print(maskOut.item(x,y))
+        h2 = h2+1
+        
+    return maskOut
 
 # Main Process
 while(1):
@@ -144,14 +155,17 @@ while(1):
         print(sense)
     if k == 112 or k == 80:
         print('Print image')
-        maskB = blockout(maskB)
-        maskG = blockout(maskG)
-        maskR = blockout(maskR)
-        maskRGB = cv.merge((maskB, maskG, maskR))
-        cv.imwrite('tileMask.png', maskRGB)
-        cv.imwrite('tileMaskR.png', maskR)
-        cv.imwrite('tileMaskG.png', maskG)
-        cv.imwrite('tileMaskB.png', maskB)
+        print(maskR.shape)
+        maskR2 = maskReduction(maskR)
+        print(maskR2.shape)
+        # maskB = blockout(maskB)
+        # maskG = blockout(maskG)
+        # maskR = blockout(maskR)
+        # maskRGB = cv.merge((maskB, maskG, maskR))
+        # cv.imwrite('tileMask.png', maskRGB)
+        # cv.imwrite('tileMaskR.png', maskR)
+        # cv.imwrite('tileMaskG.png', maskG)
+        # cv.imwrite('tileMaskB.png', maskB)
 
 
 cv.destroyAllWindows()
