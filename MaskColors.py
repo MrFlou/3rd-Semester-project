@@ -101,6 +101,18 @@ def blockout(mask):
 
     return blackMask  # , blackMaskXL
 
+def maskSizeReduction(arr):
+    h, w, c = arr.shape
+    return (arr.reshape(h//20, 20, -1, 20)
+               .swapaxes(1,2)
+               .reshape(-1, 20, 20))
+
+def maskReduction(mask):
+    mask = maskSizeReduction(mask)
+
+
+
+
 # Main Process
 while(1):
 
