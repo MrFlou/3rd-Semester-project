@@ -118,10 +118,10 @@ def maskReduction(nmask):
     h2 = 0
     for x in range(h1):
         for y in range(w1):
-            maskOut.itemset((x,y),mask[h2].mean())
+            maskOut.itemset((x,y),np.average(mask[h2]))
             print(maskOut.item(x,y))
         h2 = h2+1
-        
+
     return maskOut
 
 # Main Process
