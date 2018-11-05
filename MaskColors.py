@@ -2,7 +2,7 @@ import cv2 as cv
 import numpy as np
 
 sense = 0
-cap = cv.VideoCapture(0)
+cap = cv.VideoCapture(1)
 ret = cap.set(3, 640)
 ret = cap.set(4, 480)
 
@@ -45,6 +45,7 @@ def colorThreshold():
     # Convert BGR to HSV
     hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
 
+    # Ouer own BGR(RGB) to HSV conversion
     # for x in range(0, width):
     #     for y in range(0, height):
     #         b = frame.item(y, x, 0)
@@ -67,7 +68,7 @@ def colorThreshold():
 
     # define range of black color in HSV
     lower_black = np.array([0, 0, 0])
-    upper_black = np.array([180, 255, 35])
+    upper_black = np.array([180, 255, 40])
 
     maskB = cv.inRange(hsv, lower_black, upper_black)
 
@@ -83,23 +84,15 @@ def colorThreshold():
 def blockout(mask):
     MaskX, MaskY = mask.shape
     blackMask = cv.resize(mask, (int(MaskY/20), int(MaskX/20)))
-    # blackMaskXL = cv.resize(blackMask, (MaskY, MaskX), interpolation=cv.INTER_NEAREST)
 
     for x in range(len(blackMask)):
         for y in range(len(blackMask[x])):
-            if blackMask[x, y] > 0:
+            if blackMask[x, y] > sense:
                 blackMask.itemset((x, y), 255)
             else:
                 blackMask.itemset((x, y), 0)
 
-    # for x in range(len(blackMaskXL)):
-    #     for y in range(len(blackMaskXL[x])):
-    #         if blackMaskXL[x, y] > 1:
-    #             blackMaskXL.itemset((x, y), 255)
-    #         else:
-    #             blackMaskXL.itemset((x, y), 0)
-
-    return blackMask  # , blackMaskXL
+    return blackMask
 
 def maskSizeReduction(arr):
     h, w = arr.shape
@@ -107,20 +100,25 @@ def maskSizeReduction(arr):
                .swapaxes(1,2)
                .reshape(-1, 20, 20))
 
-def maskReduction(nmask):
+def maskReduction(nmask, sense):
     mask = maskSizeReduction(nmask)
-    maskOut = np.zeros((32, 24), dtype=np.uint8)
+    maskOut = np.zeros((24, 32), dtype=np.uint8)
     h1, w1 = maskOut.shape
     h, w, c = mask.shape
-    mask = np.arange(h*w*c).reshape(h,w,c)
 
-    print(mask.shape)
+    print(mask)
     h2 = 0
     for x in range(h1):
         for y in range(w1):
             maskOut.itemset((x,y),np.average(mask[h2]))
-            print(maskOut.item(x,y))
-        h2 = h2+1
+            h2 = h2+1
+
+    for x in range(len(maskOut)):
+        for y in range(len(maskOut[x])):
+            if maskOut[x, y] > sense:
+                maskOut.itemset((x, y), 255)
+            else:
+                maskOut.itemset((x, y), 0)
 
     return maskOut
 
@@ -155,17 +153,14 @@ while(1):
         print(sense)
     if k == 112 or k == 80:
         print('Print image')
-        print(maskR.shape)
-        maskR2 = maskReduction(maskR)
-        print(maskR2.shape)
-        # maskB = blockout(maskB)
-        # maskG = blockout(maskG)
-        # maskR = blockout(maskR)
-        # maskRGB = cv.merge((maskB, maskG, maskR))
-        # cv.imwrite('tileMask.png', maskRGB)
-        # cv.imwrite('tileMaskR.png', maskR)
-        # cv.imwrite('tileMaskG.png', maskG)
-        # cv.imwrite('tileMaskB.png', maskB)
+        maskR2 = maskReduction(maskR, 20)
+        maskB2 = maskReduction(maskB, 20)
+        maskG2 = maskReduction(maskG, 20)
+        maskRGB = cv.merge((maskB2, maskG2, maskR2))
+        cv.imwrite('tileMask.png', maskRGB)
+        cv.imwrite('tileMaskR.png', maskR)
+        cv.imwrite('tileMaskG.png', maskG)
+        cv.imwrite('tileMaskB.png', maskB)
 
 
 cv.destroyAllWindows()
