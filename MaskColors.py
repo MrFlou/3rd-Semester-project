@@ -68,7 +68,7 @@ def colorThreshold():
 
     # define range of black color in HSV
     lower_black = np.array([0, 0, 0])
-    upper_black = np.array([180, 255, 40])
+    upper_black = np.array([180, 255, 50])
 
     maskB = cv.inRange(hsv, lower_black, upper_black)
 
@@ -79,6 +79,11 @@ def colorThreshold():
     maskG = cv.inRange(hsv, lower_green, upper_green)
 
     return maskR, maskG, maskB
+
+# def perspectiveMatch(inFrame):
+#
+#
+#     return outFrame, matchOne, matchTwo
 
 
 def blockout(mask):
@@ -94,11 +99,13 @@ def blockout(mask):
 
     return blackMask
 
+
 def maskSizeReduction(arr):
     h, w = arr.shape
     return (arr.reshape(h//20, 20, -1, 20)
-               .swapaxes(1,2)
+               .swapaxes(1, 2)
                .reshape(-1, 20, 20))
+
 
 def maskReduction(nmask, sense):
     mask = maskSizeReduction(nmask)
@@ -106,11 +113,10 @@ def maskReduction(nmask, sense):
     h1, w1 = maskOut.shape
     h, w, c = mask.shape
 
-    print(mask)
     h2 = 0
     for x in range(h1):
         for y in range(w1):
-            maskOut.itemset((x,y),np.average(mask[h2]))
+            maskOut.itemset((x, y), np.average(mask[h2]))
             h2 = h2+1
 
     for x in range(len(maskOut)):
@@ -132,12 +138,16 @@ while(1):
     # blockMask, blockMaskBXL = blockout(maskB)
     # blockMask, blockMaskRXL = blockout(maskR)
     # blockMask, blockMaskGXL = blockout(maskG)
+    maskR2 = maskReduction(maskR, 20)
+    maskB2 = maskReduction(maskB, 20)
+    maskG2 = maskReduction(maskG, 20)
+    maskRGB = cv.merge((maskB2, maskG2, maskR2))
 
     cv.imshow('frame', frame)
     # cv.imshow('maskR', maskR)
     # cv.imshow('maskG', maskG)
     # cv.imshow('maskB', maskB)
-    # cv.imshow('blockMask', blockMask)
+    cv.imshow('blockMask', maskRGB)
     # cv.imshow('blockMaskBXL', blockMaskBXL)
     # cv.imshow('blockMaskGXL', blockMaskGXL)
     # cv.imshow('blockMaskRXL', blockMaskRXL)
@@ -158,9 +168,9 @@ while(1):
         maskG2 = maskReduction(maskG, 20)
         maskRGB = cv.merge((maskB2, maskG2, maskR2))
         cv.imwrite('tileMask.png', maskRGB)
-        cv.imwrite('tileMaskR.png', maskR)
-        cv.imwrite('tileMaskG.png', maskG)
-        cv.imwrite('tileMaskB.png', maskB)
+        # cv.imwrite('tileMaskR.png', maskR)
+        # cv.imwrite('tileMaskG.png', maskG)
+        # cv.imwrite('tileMaskB.png', maskB)
 
 
 cv.destroyAllWindows()
