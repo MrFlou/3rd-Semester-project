@@ -36,13 +36,14 @@ def rgb2hsv(r, g, b):
     v = v*255
 
     return h, s, v
+# End of rgb2hsv
 
 
 def colorThreshold():
     height, width, channel = frame.shape
     hsv = np.zeros((height, width, channel), dtype=np.uint8)
 
-    # Convert BGR to HSV
+    # Convert BGR to HSV with OpenCV
     hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
 
     # Ouer own BGR(RGB) to HSV conversion
@@ -79,25 +80,13 @@ def colorThreshold():
     maskG = cv.inRange(hsv, lower_green, upper_green)
 
     return maskR, maskG, maskB
+# End of colorThreshold
+
 
 # def perspectiveMatch(inFrame):
 #
 #
-#     return outFrame, matchOne, matchTwo
-
-
-def blockout(mask):
-    MaskX, MaskY = mask.shape
-    blackMask = cv.resize(mask, (int(MaskY/20), int(MaskX/20)))
-
-    for x in range(len(blackMask)):
-        for y in range(len(blackMask[x])):
-            if blackMask[x, y] > sense:
-                blackMask.itemset((x, y), 255)
-            else:
-                blackMask.itemset((x, y), 0)
-
-    return blackMask
+#     return outFrame
 
 
 def maskSizeReduction(arr):
@@ -105,6 +94,7 @@ def maskSizeReduction(arr):
     return (arr.reshape(h//20, 20, -1, 20)
                .swapaxes(1, 2)
                .reshape(-1, 20, 20))
+# End of maskSizeReduction
 
 
 def maskReduction(nmask, sense):
@@ -127,30 +117,22 @@ def maskReduction(nmask, sense):
                 maskOut.itemset((x, y), 0)
 
     return maskOut
+# End of maskReduction
 
-# Main Process
+# Main Process(Loop)
 while(1):
 
     # Take each frame
     _, frame = cap.read()
 
     maskR, maskG, maskB = colorThreshold()
-    # blockMask, blockMaskBXL = blockout(maskB)
-    # blockMask, blockMaskRXL = blockout(maskR)
-    # blockMask, blockMaskGXL = blockout(maskG)
     maskR2 = maskReduction(maskR, 20)
     maskB2 = maskReduction(maskB, 20)
     maskG2 = maskReduction(maskG, 20)
     maskRGB = cv.merge((maskB2, maskG2, maskR2))
 
     cv.imshow('frame', frame)
-    # cv.imshow('maskR', maskR)
-    # cv.imshow('maskG', maskG)
-    # cv.imshow('maskB', maskB)
     cv.imshow('blockMask', maskRGB)
-    # cv.imshow('blockMaskBXL', blockMaskBXL)
-    # cv.imshow('blockMaskGXL', blockMaskGXL)
-    # cv.imshow('blockMaskRXL', blockMaskRXL)
 
     k = cv.waitKey(5) & 0xFF
     if k == 27:
@@ -163,14 +145,6 @@ while(1):
         print(sense)
     if k == 112 or k == 80:
         print('Print image')
-        maskR2 = maskReduction(maskR, 20)
-        maskB2 = maskReduction(maskB, 20)
-        maskG2 = maskReduction(maskG, 20)
-        maskRGB = cv.merge((maskB2, maskG2, maskR2))
         cv.imwrite('tileMask.png', maskRGB)
-        # cv.imwrite('tileMaskR.png', maskR)
-        # cv.imwrite('tileMaskG.png', maskG)
-        # cv.imwrite('tileMaskB.png', maskB)
-
 
 cv.destroyAllWindows()
