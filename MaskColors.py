@@ -6,6 +6,55 @@ cap = cv.VideoCapture(1)
 ret = cap.set(3, 640)
 ret = cap.set(4, 480)
 
+def findContours(inFrame):
+    grayFrame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+    grayFrame = cv.bilateralFilter(grayFrame, 10, 5, 5)
+    outFrame = cv.adaptiveThreshold(grayFrame, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 10)
+    outFrame = cv.bitwise_not(outFrame)
+    im2, cnts, something = cv.findContours(outFrame.copy(), cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
+    cnts = sorted(cnts, key = cv.contourArea, reverse = True)[:10]
+    screenCnt = np.zeros((4,2))
+    for c in cnts:
+	    # approximate the contour
+	    peri = cv.arcLength(c, True)
+	    approx = cv.approxPolyDP(c, 0.01 * peri, True)
+
+	    # if our approximated contour has four points, then
+	    # we can assume that we have found our screen
+	    if len(approx) == 4:
+		    screenCnt = approx
+		    break
+
+
+    return screenCnt
+
+
+def perspectivewarp(screenCnt):
+    if np.sum(screenCnt) == 0:
+        return frame
+    cv.drawContours(frame, screenCnt, -1, (0, 255, 0), 3)
+    pts = screenCnt.reshape(4, 2)
+    rect = np.zeros((4, 2), dtype = "float32")
+    mainFrame = np.float32([[0,0],[640,0],[0,480],[640,480]])
+
+    # the top-left point has the smallest sum whereas the
+    #  bottom-right has the largest sum
+    s = pts.sum(axis = 1)
+    rect[0] = pts[np.argmin(s)]
+    rect[3] = pts[np.argmax(s)]
+
+    # compute the difference between the points -- the top-right
+    # will have the minumum difference and the bottom-left will
+    # have the maximum difference
+    diff = np.diff(pts, axis = 1)
+    rect[1] = pts[np.argmin(diff)]
+    rect[2] = pts[np.argmax(diff)]
+
+    # multiply the rectangle by the original ratio
+    M = cv.getPerspectiveTransform(rect, mainFrame)
+    warpFrame = cv.warpPerspective(frame,M,(640,480))
+    return warpFrame
+
 
 def rgb2hsv(r, g, b):
     r, g, b = r/255.0, g/255.0, b/255.0
@@ -39,12 +88,12 @@ def rgb2hsv(r, g, b):
 # End of rgb2hsv
 
 
-def colorThreshold():
-    height, width, channel = frame.shape
+def colorThreshold(inFrame):
+    height, width, channel = inFrame.shape
     hsv = np.zeros((height, width, channel), dtype=np.uint8)
 
     # Convert BGR to HSV with OpenCV
-    hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+    hsv = cv.cvtColor(inFrame, cv.COLOR_BGR2HSV)
 
     # Ouer own BGR(RGB) to HSV conversion
     # for x in range(0, width):
@@ -60,7 +109,7 @@ def colorThreshold():
     # define range of red color in HSV
     lower_red1 = np.array([0, 40, 40])
     upper_red1 = np.array([5, 255, 255])
-    lower_red2 = np.array([150, 40, 40])
+    lower_red2 = np.array([160, 40, 40])
     upper_red2 = np.array([180, 255, 255])
 
     maskR1 = cv.inRange(hsv, lower_red1, upper_red1)
@@ -81,12 +130,6 @@ def colorThreshold():
 
     return maskR, maskG, maskB
 # End of colorThreshold
-
-
-# def perspectiveMatch(inFrame):
-#
-#
-#     return outFrame
 
 
 def maskSizeReduction(arr):
@@ -123,9 +166,14 @@ def maskReduction(nmask, sense):
 while(1):
 
     # Take each frame
-    _, frame = cap.read()
+    ret, frame = cap.read()
+    cap.set(11, 35)  # Brightness
+    cap.set(12, 30)  # Contrast
 
-    maskR, maskG, maskB = colorThreshold()
+    screenCnt = findContours(frame)
+    warpFrame = perspectivewarp(screenCnt)
+
+    maskR, maskG, maskB = colorThreshold(warpFrame)
     maskR2 = maskReduction(maskR, 20)
     maskB2 = maskReduction(maskB, 20)
     maskG2 = maskReduction(maskG, 20)
