@@ -7,20 +7,34 @@ ret = cap.set(4, 480)
 
 
 def findContours(inFrame):
-    grayFrame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-    outFrame = cv.adaptiveThreshold(grayFrame, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 10)
-    outFrame = cv.bitwise_not(outFrame)
-    im2, cnts, something = cv.findContours(outFrame.copy(), cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
-    cnts = sorted(cnts, key=cv.contourArea, reverse=True)[:10]
     screenCnt = np.zeros((4, 2))
+    # Before finding contours we need to prepair the frame first
+    # First: we convert the BGR colour frame to grayscale
+    grayFrame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
+    # Secondly: We run an adaptive threshold on the frame to remove some noise reduction
+    # to clear binoary frame with clear edges (0 or 255)
+    outFrame = cv.adaptiveThreshold(grayFrame, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 10)
+
+    # This is a minor thing but the frame is White and black, we need it black and white
+    outFrame = cv.bitwise_not(outFrame)
+
+    # Third: Finding the contours is done though the "findContours" call, this gives us an array with
+    # all the contours found in the frame
+    im2, cnts, something = cv.findContours(outFrame.copy(), cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
+
+    # Here we sort all the found contours and removes all but the 10 biggest
+    cnts = sorted(cnts, key=cv.contourArea, reverse=True)[:10]
+
+    # Now we run though each of the 10 biggest contours and checks how big they are and how many corners they have
+    # If they have more or less than 4 corners they are not the contour we are looking for.
     for c in cnts:
-        # approximate the contour
+        # Approximate the contour
         peri = cv.arcLength(c, True)
         approx = cv.approxPolyDP(c, 0.01 * peri, True)
 
-        # if our approximated contour has four points, then
-        # we can assume that we have found our screen
+        # If our approximated contour has four points, then
+        # we can assume that we have found the drawing
         if len(approx) == 4:
             screenCnt = approx
             break
@@ -30,13 +44,18 @@ def findContours(inFrame):
 
 
 def perspectivewarp(screenCnt):
+    # If there is not contour just return clean frame
     if np.sum(screenCnt) == 0:
         return frame
+    # Draw contour if found
     cv.drawContours(frame, screenCnt, -1, (0, 255, 0), 3)
+    # preparing the vars for processing and calculations
     pts = screenCnt.reshape(4, 2)
     rect = np.zeros((4, 2), dtype="float32")
+    # This is the corners we want the process frame to fit
     mainFrame = np.float32([[0, 0], [640, 0], [0, 480], [640, 480]])
 
+    # With thise series of lines we find each corner of the conture
     s = pts.sum(axis=1)
     rect[0] = pts[np.argmin(s)]
     rect[3] = pts[np.argmax(s)]
@@ -45,12 +64,16 @@ def perspectivewarp(screenCnt):
     rect[1] = pts[np.argmin(diff)]
     rect[2] = pts[np.argmax(diff)]
 
+    # After finding the corners we the let OpenCV calculate
+    # the PerspectiveTransform need to warp the imape into the disired outcome
     M = cv.getPerspectiveTransform(rect, mainFrame)
     warpFrame = cv.warpPerspective(frame, M, (640, 480))
     return warpFrame
 # End of perspectivewarp
 
 
+# This is our own RGB to HSV, it's too slow to be used live in the pogram but
+# it shows how RGB is being converted to HSV
 def rgb2hsv(r, g, b):
     r, g, b = r/255.0, g/255.0, b/255.0
     mn = min(r, g, b)
@@ -107,20 +130,23 @@ def colorThreshold(inFrame):
     lower_red2 = np.array([160, 40, 40])
     upper_red2 = np.array([180, 255, 255])
 
-    maskR1 = cv.inRange(hsv, lower_red1, upper_red1)
-    maskR2 = cv.inRange(hsv, lower_red2, upper_red2)
-    maskR = maskR1 + maskR2
+    # Find and mask out all the colors for Red and combine
+    maskR_lower = cv.inRange(hsv, lower_red1, upper_red1)
+    maskR_upper = cv.inRange(hsv, lower_red2, upper_red2)
+    maskR = maskR_lower + maskR_upper
 
     # define range of black color in HSV
     lower_black = np.array([0, 0, 0])
     upper_black = np.array([180, 255, 40])
 
+    # Find and mask out all the colors for Black
     maskB = cv.inRange(hsv, lower_black, upper_black)
 
     # define range of green color in HSV
     lower_green = np.array([40, 35, 35])
     upper_green = np.array([90, 255, 255])
 
+    # Find and mask out all the colors for Green
     maskG = cv.inRange(hsv, lower_green, upper_green)
 
     return maskR, maskG, maskB
