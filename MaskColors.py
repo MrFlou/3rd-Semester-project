@@ -2,9 +2,6 @@ import cv2 as cv
 import numpy as np
 
 cap = cv.VideoCapture(1)
-ret = cap.set(3, 640)
-ret = cap.set(4, 480)
-
 
 def findContours(inFrame):
     screenCnt = np.zeros((4, 2))
@@ -125,7 +122,7 @@ def colorThreshold(inFrame):
     #         hsv.itemset((y, x, 2), v)
 
     # define range of red color in HSV
-    lower_red1 = np.array([0, 40, 40])
+    lower_red1 = np.array([1, 40, 40])
     upper_red1 = np.array([5, 255, 255])
     lower_red2 = np.array([160, 40, 40])
     upper_red2 = np.array([180, 255, 255])
@@ -161,8 +158,8 @@ def maskSizeReduction(arr):
 # End of maskSizeReduction
 
 
-def maskReduction(nmask, sense):
-    mask = maskSizeReduction(nmask)
+def maskReduction(maskIn, sense):
+    mask = maskSizeReduction(maskIn)
     maskOut = np.zeros((24, 32), dtype=np.uint8)
     h1, w1 = maskOut.shape
     h, w, c = mask.shape
@@ -171,7 +168,7 @@ def maskReduction(nmask, sense):
     for x in range(h1):
         for y in range(w1):
             maskOut.itemset((x, y), np.average(mask[h2]))
-            h2 = h2+1
+            h2 += 1
 
     for x in range(len(maskOut)):
         for y in range(len(maskOut[x])):
@@ -186,11 +183,19 @@ def maskReduction(nmask, sense):
 # Main Process(Loop)
 while(1):
 
-    # Take each frame
-    ret, frame = cap.read()
-    cap.set(11, 40)  # Brightness
-    cap.set(12, 40)  # Contrast
+    # Camera settings
+    cap.set(3, 640)
+    cap.set(4, 480)
+    # cap.set(10, 60)  # Brightness
+    # cap.set(11, 40)  # Contrast
+    # cap.set(12, 50)  # Saturation
+    # cap.set(14, 85)  # Gain
+    # cap.set(15, 85)  # Exposure
 
+    # Read webcam and take a frame into variable
+    ret, frame = cap.read()
+
+    # First steps of processing the frame
     screenCnt = findContours(frame)
     warpFrame = perspectivewarp(screenCnt)
 
