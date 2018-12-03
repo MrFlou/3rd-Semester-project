@@ -1,7 +1,16 @@
 import cv2 as cv
 import numpy as np
+import os
 
 cap = cv.VideoCapture(1)
+tileSize = 0
+tileHeight = 0
+tileWidth = 0
+
+templateOne = cv.imread('templateTiles/template-1.png', cv.IMREAD_GRAYSCALE)
+templateTwo = cv.imread('templateTiles/template-2.png', cv.IMREAD_GRAYSCALE)
+templateThree = cv.imread('templateTiles/template-3.png', cv.IMREAD_GRAYSCALE)
+
 
 def findContours(inFrame):
     screenCnt = np.zeros((4, 2))
@@ -40,6 +49,27 @@ def findContours(inFrame):
 # End of findContours
 
 
+# def symboleMatching(inFrame):
+#     frameGray = cv.cvtColor(inFrame, cv.COLOR_BGR2GRAY)
+#     targetOne = cv.matchTemplate(frameGray, templateOne, cv.TM_CCOEFF_NORMED)
+#     targetTwo = cv.matchTemplate(frameGray, templateTwo, cv.TM_CCOEFF_NORMED)
+#     targetThree = cv.matchTemplate(frameGray, templateThree, cv.TM_CCOEFF_NORMED)
+#
+#     locOne = np.where(targetOne >= 0.4)
+#     locTwo = np.where(targetTwo >= 0.4)
+#     locThree = np.where(targetThree >= 0.4)
+#     w, h = templateOne.shape[::-1]
+#     for pt in zip(*locOne[::-1]):
+#         cv.rectangle(inFrame, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
+#     for pt in zip(*locTwo[::-1]):
+#         cv.rectangle(inFrame, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
+#     for pt in zip(*locThree[::-1]):
+#         cv.rectangle(inFrame, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
+#
+#     return inFrame
+# # End of symboleMatching
+
+
 def perspectivewarp(screenCnt):
     # If there is not contour just return clean frame
     if np.sum(screenCnt) == 0:
@@ -72,7 +102,10 @@ def perspectivewarp(screenCnt):
 # This is our own RGB to HSV, it's too slow to be used live in the pogram but
 # it shows how RGB is being converted to HSV
 def rgb2hsv(r, g, b):
+    # Normalizing RGB-values
     r, g, b = r/255.0, g/255.0, b/255.0
+
+    # Min and Max value of RGB
     mn = min(r, g, b)
     mx = max(r, g, b)
     df = mx-mn
@@ -152,15 +185,15 @@ def colorThreshold(inFrame):
 
 def maskSizeReduction(arr):
     h, w = arr.shape
-    return (arr.reshape(h//20, 20, -1, 20)
+    return (arr.reshape(h//tileSize, tileSize, -1, tileSize)
                .swapaxes(1, 2)
-               .reshape(-1, 20, 20))
+               .reshape(-1, tileSize, tileSize))
 # End of maskSizeReduction
 
 
 def maskReduction(maskIn, sense):
     mask = maskSizeReduction(maskIn)
-    maskOut = np.zeros((24, 32), dtype=np.uint8)
+    maskOut = np.zeros((tileHeight, tileWidth), dtype=np.uint8)
     h1, w1 = maskOut.shape
     h, w, c = mask.shape
 
@@ -180,8 +213,38 @@ def maskReduction(maskIn, sense):
     return maskOut
 # End of maskReduction
 
+
 # Main Process(Loop)
+menu = 0
 while(1):
+    if menu == 0:
+        print("Main Choice: Choose 1 of 4 choices")
+        print("Choose 1 for 16:12")
+        print("Choose 2 for 32:24")
+        print("Choose 3 for 64:48")
+        print("Choose 4 for exit")
+
+        choice = input("Please make a choice: ")
+
+        if choice == "4":
+            exit()
+        elif choice == "3":
+            menu = 1
+            tileSize = 10
+            tileHeight = 48
+            tileWidth = 64
+        elif choice == "2":
+            menu = 1
+            tileSize = 20
+            tileHeight = 24
+            tileWidth = 32
+        elif choice == "1":
+            menu = 1
+            tileSize = 40
+            tileHeight = 12
+            tileWidth = 16
+        else:
+            print("I don't understand your choice.")
 
     # Camera settings
     cap.set(3, 640)
@@ -212,7 +275,7 @@ while(1):
     # Esc to quit the python code
     if k == 27:
         break
-    # (Numpad P and p) to Print the processed image
+        # (Numpad P and p) to Print the processed image
     if k == 112 or k == 80:
         print('Print image')
         maskR2 = maskReduction(maskR, 30)
@@ -223,3 +286,4 @@ while(1):
         cv.imwrite('tileMask.png', maskRGB)
 
 cv.destroyAllWindows()
+# End of mainLoop
