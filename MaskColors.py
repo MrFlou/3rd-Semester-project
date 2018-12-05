@@ -1,11 +1,10 @@
 import cv2 as cv
 import numpy as np
-import os
 
 cap = cv.VideoCapture(1)
-tileSize = 0
-tileHeight = 0
-tileWidth = 0
+tileSize = 20
+tileHeight = 24
+tileWidth = 32
 
 templateOne = cv.imread('templateTiles/template-1.png', cv.IMREAD_GRAYSCALE)
 templateTwo = cv.imread('templateTiles/template-2.png', cv.IMREAD_GRAYSCALE)
@@ -49,25 +48,30 @@ def findContours(inFrame):
 # End of findContours
 
 
-# def symboleMatching(inFrame):
-#     frameGray = cv.cvtColor(inFrame, cv.COLOR_BGR2GRAY)
-#     targetOne = cv.matchTemplate(frameGray, templateOne, cv.TM_CCOEFF_NORMED)
-#     targetTwo = cv.matchTemplate(frameGray, templateTwo, cv.TM_CCOEFF_NORMED)
-#     targetThree = cv.matchTemplate(frameGray, templateThree, cv.TM_CCOEFF_NORMED)
-#
-#     locOne = np.where(targetOne >= 0.4)
-#     locTwo = np.where(targetTwo >= 0.4)
-#     locThree = np.where(targetThree >= 0.4)
-#     w, h = templateOne.shape[::-1]
-#     for pt in zip(*locOne[::-1]):
-#         cv.rectangle(inFrame, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
-#     for pt in zip(*locTwo[::-1]):
-#         cv.rectangle(inFrame, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
-#     for pt in zip(*locThree[::-1]):
-#         cv.rectangle(inFrame, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
-#
-#     return inFrame
-# # End of symboleMatching
+def symboleMatching(inFrame):
+    frameGray = cv.cvtColor(inFrame, cv.COLOR_BGR2GRAY)
+    targetOne = cv.matchTemplate(frameGray, templateOne, cv.TM_CCOEFF_NORMED)
+    targetTwo = cv.matchTemplate(frameGray, templateTwo, cv.TM_CCOEFF_NORMED)
+    targetThree = cv.matchTemplate(frameGray, templateThree, cv.TM_CCOEFF_NORMED)
+    locPicOne = np.zeros_like(frameGray)
+    locPicTwo = np.zeros_like(frameGray)
+    locPicThree = np.zeros_like(frameGray)
+    locOne = np.where(targetOne >= 0.6)
+    locTwo = np.where(targetTwo >= 0.5)
+    locThree = np.where(targetThree >= 0.6)
+    w, h = templateOne.shape[::-1]
+    for pt in zip(*locOne[::-1]):
+        cv.rectangle(warpFrame, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
+        cv.rectangle(locPicOne, (pt[0] + int(w/2), pt[1] + int(h/2)), (pt[0] + int(w/2), pt[1] + int(h/2)), 255, 2)
+    for pt in zip(*locTwo[::-1]):
+        cv.rectangle(warpFrame, pt, (pt[0] + w, pt[1] + h), (0, 255, 0), 2)
+        cv.rectangle(locPicTwo, (pt[0] + int(w/2), pt[1] + int(h/2)), (pt[0] + int(w/2), pt[1] + int(h/2)), 255, 2)
+    for pt in zip(*locThree[::-1]):
+        cv.rectangle(warpFrame, pt, (pt[0] + w, pt[1] + h), (255, 0, 0), 2)
+        cv.rectangle(locPicThree, (pt[0] + int(w/2), pt[1] + int(h/2)), (pt[0] + int(w/2), pt[1] + int(h/2)), 255, 2)
+
+    return locPicOne, locPicTwo, locPicThree
+# End of symboleMatching
 
 
 def perspectivewarp(screenCnt):
@@ -155,9 +159,9 @@ def colorThreshold(inFrame):
     #         hsv.itemset((y, x, 2), v)
 
     # define range of red color in HSV
-    lower_red1 = np.array([1, 40, 40])
-    upper_red1 = np.array([5, 255, 255])
-    lower_red2 = np.array([160, 40, 40])
+    lower_red1 = np.array([0, 70, 70])
+    upper_red1 = np.array([10, 255, 255])
+    lower_red2 = np.array([160, 70, 70])
     upper_red2 = np.array([180, 255, 255])
 
     # Find and mask out all the colors for Red and combine
@@ -165,16 +169,16 @@ def colorThreshold(inFrame):
     maskR_upper = cv.inRange(hsv, lower_red2, upper_red2)
     maskR = maskR_lower + maskR_upper
 
-    # define range of black color in HSV
-    lower_black = np.array([0, 0, 0])
-    upper_black = np.array([180, 255, 40])
+    # define range of blue color in HSV
+    lower_blue = np.array([80, 70, 70])
+    upper_blue = np.array([140, 255, 255])
 
-    # Find and mask out all the colors for Black
-    maskB = cv.inRange(hsv, lower_black, upper_black)
+    # Find and mask out all the colors for Blue
+    maskB = cv.inRange(hsv, lower_blue, upper_blue)
 
     # define range of green color in HSV
-    lower_green = np.array([40, 35, 35])
-    upper_green = np.array([90, 255, 255])
+    lower_green = np.array([40, 70, 70])
+    upper_green = np.array([100, 255, 255])
 
     # Find and mask out all the colors for Green
     maskG = cv.inRange(hsv, lower_green, upper_green)
@@ -216,6 +220,7 @@ def maskReduction(maskIn, sense):
 
 # Main Process(Loop)
 menu = 0
+choice = "0"
 while(1):
     if menu == 0:
         print("Main Choice: Choose 1 of 4 choices")
@@ -264,11 +269,14 @@ while(1):
 
     maskR, maskG, maskB = colorThreshold(warpFrame)
 
+    # Template match find the symbols
+    locPicOne, locPicTwo, locPicThree = symboleMatching(warpFrame)
+
     # Displaying diffrent stages of the process the frame goes though, to help debug any faults
     cv.imshow('frame', frame)
     cv.imshow('warpFrame', warpFrame)
     cv.imshow('Mask-Red', maskR)
-    cv.imshow('Mask-Black', maskB)
+    cv.imshow('Mask-Blue', maskB)
     cv.imshow('Mask-Green', maskG)
 
     k = cv.waitKey(5) & 0xFF
@@ -278,12 +286,35 @@ while(1):
         # (Numpad P and p) to Print the processed image
     if k == 112 or k == 80:
         print('Print image')
-        maskR2 = maskReduction(maskR, 30)
-        maskB2 = maskReduction(maskB, 30)
-        maskG2 = maskReduction(maskG, 30)
-        maskRGB = cv.merge((maskB2, maskG2, maskR2))
+
+        # Merge the colors into on file for Unity
+        maskRGB = cv.merge((maskReduction(maskB, 50), maskReduction(maskG, 50), maskReduction(maskR, 50)))
+
+        # tileSize = 40
+        # tileHeight = 12
+        # tileWidth = 16
+        symbolRGB = cv.merge((maskReduction(locPicThree, 5), maskReduction(locPicTwo, 4), maskReduction(locPicOne, 4)))
+
+        if choice == "3":
+            tileSize = 10
+            tileHeight = 48
+            tileWidth = 64
+        elif choice == "2":
+            tileSize = 20
+            tileHeight = 24
+            tileWidth = 32
+        elif choice == "1":
+            tileSize = 40
+            tileHeight = 12
+            tileWidth = 16
+        elif choice == "0":
+            tileSize = 20
+            tileHeight = 24
+            tileWidth = 32
+
         cv.imshow('blockMask', maskRGB)
         cv.imwrite('tileMask.png', maskRGB)
+        cv.imwrite('symbolMask.png', symbolRGB)
 
 cv.destroyAllWindows()
 # End of mainLoop
