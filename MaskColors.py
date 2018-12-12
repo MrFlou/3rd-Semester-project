@@ -141,23 +141,9 @@ def rgb2hsv(r, g, b):
 
 
 def colorThreshold(inFrame):
-    height, width, channel = inFrame.shape
-    hsv = np.zeros((height, width, channel), dtype=np.uint8)
+    hsv = cv.cvtColor(inFrame, cv.COLOR_BGR2HSV)  # Convert BGR to HSV with OpenCV
 
-    # Convert BGR to HSV with OpenCV
-    hsv = cv.cvtColor(inFrame, cv.COLOR_BGR2HSV)
-
-    # Ouer own BGR(RGB) to HSV conversion
-    # for x in range(0, width):
-    #     for y in range(0, height):
-    #         b = frame.item(y, x, 0)
-    #         g = frame.item(y, x, 1)
-    #         r = frame.item(y, x, 2)
-    #         h, s, v = rgb2hsv(r, g, b)
-    #         hsv.itemset((y, x, 0), h)
-    #         hsv.itemset((y, x, 1), s)
-    #         hsv.itemset((y, x, 2), v)
-
+    # Now that the color is in HSV we can use the HUE to better threshold
     # define range of red color in HSV
     lower_red1 = np.array([0, 70, 70])
     upper_red1 = np.array([10, 255, 255])
@@ -167,7 +153,7 @@ def colorThreshold(inFrame):
     # Find and mask out all the colors for Red and combine
     maskR_lower = cv.inRange(hsv, lower_red1, upper_red1)
     maskR_upper = cv.inRange(hsv, lower_red2, upper_red2)
-    maskR = maskR_lower + maskR_upper
+    maskR = maskR_lower + maskR_upper  # Combines the two Red masks into one
 
     # define range of blue color in HSV
     lower_blue = np.array([80, 70, 70])
@@ -222,6 +208,9 @@ def maskReduction(maskIn, sense):
 menu = 0
 choice = "0"
 while(1):
+    ###########################
+    # START of Module 0: Menu #
+    # this module serves no major function to the overall program other that limited user controle
     if menu == 0:
         print("Main Choice: Choose 1 of 4 choices")
         print("Choose 1 for 16:12")
@@ -259,19 +248,31 @@ while(1):
     # cap.set(12, 50)  # Saturation
     # cap.set(14, 85)  # Gain
     # cap.set(15, 85)  # Exposure
+    #  END of Module 0: Menu  #
+    ###########################
 
+    ##################################
+    # START of Module 1: Image Setup #
     # Read webcam and take a frame into variable
     ret, frame = cap.read()
 
     # First steps of processing the frame
     screenCnt = findContours(frame)
     warpFrame = perspectivewarp(screenCnt)
+    #  END of Module 1: Image Setup  #
+    ##################################
 
+    #######################################
+    # START of Module 2: Detecting Colors #
     maskR, maskG, maskB = colorThreshold(warpFrame)
 
     # Template match find the symbols
     locPicOne, locPicTwo, locPicThree = symboleMatching(warpFrame)
+    #  END of Module 2: Detecting Colors  #
+    #######################################
 
+    #############################
+    # START of Modile 3: Output #
     # Displaying diffrent stages of the process the frame goes though, to help debug any faults
     cv.imshow('frame', frame)
     cv.imshow('warpFrame', warpFrame)
@@ -290,31 +291,13 @@ while(1):
         # Merge the colors into on file for Unity
         maskRGB = cv.merge((maskReduction(maskB, 50), maskReduction(maskG, 50), maskReduction(maskR, 50)))
 
-        # tileSize = 40
-        # tileHeight = 12
-        # tileWidth = 16
         symbolRGB = cv.merge((maskReduction(locPicThree, 5), maskReduction(locPicTwo, 4), maskReduction(locPicOne, 4)))
-
-        if choice == "3":
-            tileSize = 10
-            tileHeight = 48
-            tileWidth = 64
-        elif choice == "2":
-            tileSize = 20
-            tileHeight = 24
-            tileWidth = 32
-        elif choice == "1":
-            tileSize = 40
-            tileHeight = 12
-            tileWidth = 16
-        elif choice == "0":
-            tileSize = 20
-            tileHeight = 24
-            tileWidth = 32
 
         cv.imshow('blockMask', maskRGB)
         cv.imwrite('tileMask.png', maskRGB)
         cv.imwrite('symbolMask.png', symbolRGB)
+    #  END of Module 3: Outpur  #
+    #############################
 
 cv.destroyAllWindows()
 # End of mainLoop
